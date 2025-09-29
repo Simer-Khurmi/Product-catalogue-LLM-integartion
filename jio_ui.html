@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jio - Advanced Telecom Management Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/1.30.1/date_fns.min.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4CAF50, #45a049);
+            --danger-gradient: linear-gradient(135deg, #f44336, #d32f2f);
+            --warning-gradient: linear-gradient(135deg, #ff9800, #f57c00);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow-light: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --shadow-heavy: 0 12px 40px rgba(0, 0, 0, 0.15);
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Section */
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.3em;
+            margin-bottom: 25px;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 5px;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .nav-tab.active {
+            background: white;
+            box-shadow: var(--shadow-light);
+            color: var(--text-primary);
+        }
+
+        .nav-tab:hover {
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .status-item {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .status-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--success-gradient);
+        }
+
+        .status-item.alert::before {
+            background: var(--danger-gradient);
+        }
+
+        .status-item.warning::before {
+            background: var(--warning-gradient);
+        }
+
+        .status-item:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .status-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .status-label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Card Grid System */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .card-grid-large {
+            grid-template-columns: 2fr 1fr;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow-light);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .card h2 {
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .icon {
+            width: 28px;
+            height: 28px;
+            background: var(--primary-gradient);
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        /* Form Controls */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            margin-bottom: 8px;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .input-group input, 
+        .input-group select, 
+        .input-group textarea {
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .input-group input:focus, 
+        .input-group select:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        /* Buttons */
+        .btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: var(--danger-gradient);
+        }
+
+        .btn-success {
+            background: var(--success-gradient);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-gradient);
+        }
+
+        /* Result Panels */
+        .result-panel {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            backdrop-filter: blur(5px);
+        }
+
+        .alert-result {
+            border-left-color: #f44336;
+            background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(211, 47, 47, 0.05));
+        }
+
+        .normal-result {
+            border-left-color: #4CAF50;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(69, 160, 73, 0.05));
+        }
+
+        /* Charts */
+        .chart-container {
+            height: 350px;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        /* Feature Explanation */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .feature-item {
+            background: rgba(102, 126, 234, 0.08);
+            padding: 12px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            background: rgba(102, 126, 234, 0.12);
+            transform: translateX(3px);
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 12px;
+            max-width: 80%;
+            animation: slideIn 0.3s ease;
+        }
+
+        .chat-message.user {
+            background: var(--primary-gradient);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.bot {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .chat-send {
+            padding: 12px 20px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Product Grid */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .product-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: var(--shadow-light);
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+        }
+
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .product-price {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .product-category {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        /* Logs Container */
+        .logs-container {
+            height: 300px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            opacity: 0;
+            animation: logAppear 0.3s ease forwards;
+        }
+
+        @keyframes logAppear {
+            to { opacity: 1; }
+        }
+
+        .log-timestamp {
+            color: #888;
+        }
+
+        .log-error {
+            color: #ff4444;
+        }
+
+        .log-warning {
+            color: #ffaa00;
+        }
+
+        .log-info {
+            color: #44aaff;
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-tabs {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mt-20 { margin-top: 20px; }
+        .mb-20 { margin-bottom: 20px; }
+        .full-width { width: 100%; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header Section -->
+        <div class="header">
+            <h1>🚀 Jio Advanced Telecom Management</h1>
+            <p class="subtitle">Intelligent KPI Monitoring & AI-Powered Product Catalog</p>
+            
+            <!-- Navigation Tabs -->
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="switchTab('kpi')">
+                    📊 KPI Anomaly Detection
+                </button>
+                <button class="nav-tab" onclick="switchTab('catalog')">
+                    📱 Product Catalog AI
+                </button>
+                <button class="nav-tab" onclick="switchTab('analytics')">
+                    📈 Advanced Analytics
+                </button>
+                <button class="nav-tab" onclick="switchTab('settings')">
+                    ⚙️ System Settings
+                </button>
+            </div>
+        </div>
+
+        <!-- System Status Bar -->
+        <div class="status-bar">
+            <div class="status-item" id="system-status">
+                <div class="status-value">99.7%</div>
+                <div class="status-label">System Uptime</div>
+            </div>
+            <div class="status-item alert" id="alert-count">
+                <div class="status-value">3</div>
+                <div class="status-label">Active Alerts</div>
+            </div>
+            <div class="status-item warning" id="warning-count">
+                <div class="status-value">7</div>
+                <div class="status-label">Warnings</div>
+            </div>
+            <div class="status-item" id="api-calls">
+                <div class="status-value">1,247</div>
+                <div class="status-label">API Calls/Hour</div>
+            </div>
+        </div>
+
+        <!-- KPI Anomaly Detection Tab -->
+        <div id="kpi-tab" class="tab-content active">
+            <div class="card-grid">
+                <!-- Real-time KPI Monitor -->
+                <div class="card">
+                    <h2><span class="icon">📊</span>Real-time KPI Monitor</h2>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Aggregate Traffic (Mbps)</label>
+                            <input type="number" id="agg-traffic" placeholder="123.4" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Downstream Quality</label>
+                            <input type="number" id="downstream" placeholder="210.1" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Active Sessions</label>
+                            <input type="number" id="active-sessions" placeholder="87.0" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>VPN Traffic (Mbps)</label>
+                            <input type="number" id="vpn-traffic" placeholder="44.5" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Location</label>
+                            <select id="location">
+                                <option value="mumbai">Mumbai</option>
+                                <option value="delhi">Delhi</option>
+                                <option value="bangalore">Bangalore</option>
+                                <option value="hyderabad">Hyderabad</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Threshold Mode</label>
+                            <select id="threshold-mode">
+                                <option value="precision">High Precision (≥99%)</option>
+                                <option value="balanced">Balanced</option>
+                                <option value="sensitive">High Sensitivity</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn full-width mt-20" onclick="runAnomalyDetection()">
+                        🔍 Analyze KPIs
+                    </button>
+                    <div id="kpi-result" class="result-panel hidden"></div>
+                </div>
+
+                <!-- Live KPI Chart -->
+                <div class="card">
+                    <h2><span class="icon">📈</span>Live KPI Trends</h2>
+                    <div class="chart-container">
+                        <canvas id="kpiChart"></canvas>
+                    </div>
+                    <button class="btn btn-secondary mt-20" onclick="startRealTimeMonitoring()">
+                        ▶️ Start Real-time Monitoring
+                    </button>
+                </div>
+            </div>
+
+            <!-- Advanced Analytics -->
+            <div class="card-grid">
+                <div class="card">
+                    <h2><span class="icon">🎯</span>Model Performance</h2>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">🔧</span>Feature Importance</h2>
+                    <div id="feature-importance">
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <strong>agg_traffic_z24h:</strong> 0.34
+                            </div>
+                            <div class="feature-item">
+                                <strong>downstream_roll_std_24h:</strong> 0.28
+                            </div>
+                            <div class="feature-item">
+                                <strong>active_sessions_diff1:</strong> 0.21
+                            </div>
+                            <div class="feature-item">
+                                <strong>vpn_traffic_z24h:</strong> 0.17
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary mt-20" onclick="updateFeatureImportance()">
+                        🔄 Refresh SHAP Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Catalog AI Tab -->
+        <div id="catalog-tab" class="tab-content">
+            <div class="card-grid">
+                <div class="card" style="grid-column: span 2;">
+                    <h2><span class="icon">🤖</span>AI Product Assistant</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                        Ask me anything about Jio products in natural language!
+                    </p>
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chat-messages">
+                            <div class="chat-message bot">
+                                👋 Hello! I'm your AI assistant for Jio's product catalog. You can ask me things like:
+                                <br>• "Show me prepaid plans under ₹500"
+                                <br>• "What broadband offers are available?"
+                                <br>• "Tell me about unlimited data plans"
+                            </div>
+                        </div>
+                        <div class="chat-input-container">
+                            <input type="text" class="chat-input" id="chat-input" 
+                                   placeholder="Ask about products... (e.g., show prepaid plans under 500)" 
+                                   onkeypress="handleChatInput(event)">
+                            <button class="chat-send" onclick="sendChatMessage()">Send 🚀</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Catalog Display -->
+            <div class="card">
+                <h2><span class="icon">📱</span>Product Catalog</h2>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>Category Filter</label>
+                        <select id="category-filter" onchange="filterProducts()">
+                            <option value="">All Categories</option>
+                            <option value="prepaid">Prepaid</option>
+                            <option value="postpaid">Postpaid</option>
+                            <option value="broadband">Broadband</option>
+                            <option value="enterprise">Enterprise</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Price Range (₹)</label>
+                        <input type="range" id="price-range" min="0" max="2000" value="1000" 
+                               oninput="updatePriceRange(this.value)">
+                        <span id="price-display">Up to ₹1000</span>
+                    </div>
+                </div>
+                <div class="product-grid" id="product-grid">
+                    <!-- Products will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Analytics Tab -->
+        <div id="analytics-tab" class="tab-content">
+            <div class="card-grid">
+                <div class="card">
+                    <h2><span class="icon">📊</span>Network Performance Analytics</h2>
+                    <div class="chart-container">
+                        <canvas id="networkChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2><span class="icon">🎯</span>Anomaly Statistics</h2>
+                    <div class="chart-container">
+                        <canvas id="anomalyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2><span class="icon">🔍</span>Deep Analysis Tools</h2>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>Analysis Type</label>
+                        <select id="analysis-type">
+                            <option value="correlation">Correlation Analysis</option>
+                            <option value="trend">Trend Analysis</option>
+                            <option value="forecast">Forecasting</option>
+                            <option value="clustering">Clustering</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Time Range</label>
+                        <select id="time-range">
+                            <option value="1h">Last Hour</option>
+                            <option value="24h">Last 24 Hours</option>
+                            <option value="7d">Last 7 Days</option>
+                            <option value="30d">Last 30 Days</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn full-width mt-20" onclick="runDeepAnalysis()">
+                    🧠 Run Deep Analysis
+                </button>
+                <div id="analysis-result" class="result-panel hidden"></div>
+            </div>
+        </div>
+
+        <!-- System Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <div class="card-grid">
+                <div class="card">
+                    <h2><span class="icon">⚙️</span>Model Configuration</h2>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>XGBoost Trees</label>
+                            <input type="range" id="xgb-trees" min="100" max="1000" value="400" 
+                                   oninput="updateSliderValue('xgb-trees', 'xgb-trees-value')">
+                            <span id="xgb-trees-value">400</span>
+                        </div>
+                        <div class="input-group">
+                            <label>Max Depth</label>
+                            <input type="range" id="max-depth" min="3" max="10" value="5"
+                                   oninput="updateSliderValue('max-depth', 'max-depth-value')">
+                            <span id="max-depth-value">5</span>
+                        </div>
+                        <div class="input-group">
+                            <label>Learning Rate</label>
+                            <input type="range" id="learning-rate" min="0.01" max="0.3" step="0.01" value="0.05"
+                                   oninput="updateSliderValue('learning-rate', 'learning-rate-value')">
+                            <span id="learning-rate-value">0.05</span>
+                        </div>
+                        <div class="input-group">
+                            <label>Precision Threshold</label>
+                            <input type="range" id="precision-threshold" min="0.90" max="0.999" step="0.001" value="0.99"
+                                   oninput="updateSliderValue('precision-threshold', 'precision-threshold-value')">
+                            <span id="precision-threshold-value">0.99</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-success full-width mt-20" onclick="saveModelConfig()">
+                        💾 Save Configuration
+                    </button>
+                </div>
+
+                <div class="card">
+                    <h2><span class="icon">🔄</span>System Maintenance</h2>
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label>Auto-Retrain Schedule</label>
+                            <select id="retrain-schedule">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Data Retention (Days)</label>
+                            <input type="number" id="data-retention" value="90" min="30" max="365">
+                        </div>
+                        <div class="input-group">
+                            <label>Alert Cooldown (Minutes)</label>
+                            <input type="number" id="alert-cooldown" value="15" min="1" max="60">
+                        </div>
+                        <div class="input-group">
+                            <label>API Rate Limit</label>
+                            <input type="number" id="api-rate-limit" value="1000" min="100" max="10000">
+                        </div>
+                    </div>
+                    <div class="form-grid mt-20">
+                        <button class="btn btn-secondary" onclick="exportConfig()">
+                            📤 Export Config
+                        </button>
+                        <button class="btn btn-danger" onclick="resetSystem()">
+                            🔄 Reset System
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Logs -->
+            <div class="card">
+                <h2><span class="icon">📋</span>System Logs</h2>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>Log Level</label>
+                        <select id="log-level" onchange="filterLogs()">
+                            <option value="all">All Logs</option>
+                            <option value="error">Errors Only</option>
+                            <option value="warning">Warnings</option>
+                            <option value="info">Info</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="clearLogs()">🗑️ Clear Logs</button>
+                </div>
+                <div class="logs-container" id="system-logs">
+                    <!-- Logs will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let charts = {};
+        let realTimeInterval;
+        let systemLogs = [];
+        let currentTab = 'kpi';
+        
+        // Mock data
+        const mockProducts = [
+            { id: '1001', name: 'Jio Prime Prepaid', price: 399, category: 'prepaid', validity: '84 days', data: '2GB/day' },
+            { id: '1002', name: 'Jio Postpaid Plus', price: 599, category: 'postpaid', validity: 'Monthly', data: 'Unlimited' },
+            { id: '1003', name: 'JioFiber Basic', price: 699, category: 'broadband', speed: '150 Mbps', data: 'Unlimited' },
+            { id: '1004', name: 'Jio Business Pro', price: 1499, category: 'enterprise', features: 'Priority Support' },
+            { id: '1005', name: 'Jio Student Plan', price: 199, category: 'prepaid', validity: '28 days', data: '1.5GB/day' },
+            { id: '1006', name: 'JioFiber Premium', price: 1499, category: 'broadband', speed: '1 Gbps', data: 'Unlimited' }
+        ];
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            populateProducts();
+            startSystemMonitoring();
+            addSystemLog('info', 'Dashboard initialized successfully');
+        });
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+            currentTab = tabName;
+            
+            addSystemLog('info', `Switched to ${tabName} tab`);
+        }
+
+        // KPI Anomaly Detection
+        function runAnomalyDetection() {
+            const aggTraffic = parseFloat(document.getElementById('agg-traffic').value) || 0;
+            const downstream = parseFloat(document.getElementById('downstream').value) || 0;
+            const activeSessions = parseFloat(document.getElementById('active-sessions').value) || 0;
+            const vpnTraffic = parseFloat(document.getElementById('vpn-traffic').value) || 0;
+            const location = document.getElementById('location').value;
+            const thresholdMode = document.getElementById('threshold-mode').value;
+
+            // Show loading
+            const resultDiv = document.getElementById('kpi-result');
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="loading"></div> Analyzing KPI data...';
+
+            // Simulate analysis
+            setTimeout(() => {
+                const anomalyScore = Math.random();
+                const isAnomaly = anomalyScore > 0.7;
+                const confidence = (Math.random() * 0.3 + 0.7).toFixed(3);
+
+                let resultClass = isAnomaly ? 'alert-result' : 'normal-result';
+                let resultText = isAnomaly ? '🚨 ANOMALY DETECTED' : '✅ NORMAL OPERATION';
+                
+                const topFeatures = [
+                    'agg_traffic_z24h: ' + (Math.random() * 2 - 1).toFixed(2),
+                    'downstream_roll_std_24h: ' + (Math.random() * 0.5).toFixed(2),
+                    'active_sessions_diff1: ' + (Math.random() * 10 - 5).toFixed(1),
+                    'vpn_traffic_z24h: ' + (Math.random() * 1.5 - 0.75).toFixed(2)
+                ];
+
+                resultDiv.className = `result-panel ${resultClass}`;
+                resultDiv.innerHTML = `
+                    <h3>${resultText}</h3>
+                    <p><strong>Confidence:</strong> ${confidence}</p>
+                    <p><strong>Location:</strong> ${location.toUpperCase()}</p>
+                    <p><strong>Threshold Mode:</strong> ${thresholdMode}</p>
+                    <div class="feature-grid mt-20">
+                        <h4>Top Contributing Features:</h4>
+                        ${topFeatures.map(feature => `<div class="feature-item">${feature}</div>`).join('')}
+                    </div>
+                `;
+
+                // Log the event
+                addSystemLog(isAnomaly ? 'warning' : 'info', 
+                    `Anomaly detection completed - ${isAnomaly ? 'ANOMALY' : 'NORMAL'} (Confidence: ${confidence})`);
+
+                // Update status bar
+                if (isAnomaly) {
+                    const alertCount = document.querySelector('#alert-count .status-value');
+                    alertCount.textContent = parseInt(alertCount.textContent) + 1;
+                }
+            }, 2000);
+        }
+
+        // Chart initialization
+        function initializeCharts() {
+            // KPI Trends Chart
+            const kpiCtx = document.getElementById('kpiChart').getContext('2d');
+            charts.kpiChart = new Chart(kpiCtx, {
+                type: 'line',
+                data: {
+                    labels: generateTimeLabels(20),
+                    datasets: [{
+                        label: 'Aggregate Traffic',
+                        data: generateRandomData(20, 100, 200),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Active Sessions',
+                        data: generateRandomData(20, 50, 150),
+                        borderColor: '#f093fb',
+                        backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Performance Chart
+            const perfCtx = document.getElementById('performanceChart').getContext('2d');
+            charts.performanceChart = new Chart(perfCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Precision', 'Recall', 'F1-Score'],
+                    datasets: [{
+                        data: [99.2, 87.5, 92.8],
+                        backgroundColor: ['#4CAF50', '#ff9800', '#667eea'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Network Performance Chart
+            const networkCtx = document.getElementById('networkChart').getContext('2d');
+            charts.networkChart = new Chart(networkCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata'],
+                    datasets: [{
+                        label: 'Network Utilization %',
+                        data: [78, 82, 65, 71, 69, 75],
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: '#667eea',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // Anomaly Statistics Chart
+            const anomalyCtx = document.getElementById('anomalyChart').getContext('2d');
+            charts.anomalyChart = new Chart(anomalyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Anomalies Detected',
+                        data: [12, 8, 15, 6],
+                        borderColor: '#f44336',
+                        backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'False Positives',
+                        data: [2, 1, 3, 1],
+                        borderColor: '#ff9800',
+                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Real-time monitoring
+        function startRealTimeMonitoring() {
+            const button = event.target;
+            if (realTimeInterval) {
+                clearInterval(realTimeInterval);
+                realTimeInterval = null;
+                button.textContent = '▶️ Start Real-time Monitoring';
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-secondary');
+                addSystemLog('info', 'Real-time monitoring stopped');
+            } else {
+                realTimeInterval = setInterval(updateRealTimeData, 5000);
+                button.textContent = '⏸️ Stop Monitoring';
+                button.classList.remove('btn-secondary');
+                button.classList.add('btn-danger');
+                addSystemLog('info', 'Real-time monitoring started');
+            }
+        }
+
+        function updateRealTimeData() {
+            // Update KPI chart with new data
+            const chart = charts.kpiChart;
+            chart.data.labels.push(new Date().toLocaleTimeString());
+            chart.data.labels.shift();
+            
+            chart.data.datasets.forEach(dataset => {
+                dataset.data.push(Math.random() * 100 + 50);
+                dataset.data.shift();
+            });
+            
+            chart.update('none');
+
+            // Randomly trigger anomaly detection
+            if (Math.random() > 0.8) {
+                addSystemLog('warning', 'Automatic anomaly check triggered');
+                // Auto-populate some values and run detection
+                document.getElementById('agg-traffic').value = (Math.random() * 200 + 50).toFixed(1);
+                document.getElementById('downstream').value = (Math.random() * 300 + 100).toFixed(1);
+                document.getElementById('active-sessions').value = (Math.random() * 100 + 20).toFixed(1);
+                document.getElementById('vpn-traffic').value = (Math.random() * 80 + 10).toFixed(1);
+                
+                setTimeout(() => runAnomalyDetection(), 1000);
+            }
+        }
+
+        // Chat functionality
+        function handleChatInput(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const messagesContainer = document.getElementById('chat-messages');
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'chat-message user';
+            userMessage.textContent = message;
+            messagesContainer.appendChild(userMessage);
+
+            // Clear input
+            input.value = '';
+
+            // Simulate AI processing
+            const thinkingMessage = document.createElement('div');
+            thinkingMessage.className = 'chat-message bot';
+            thinkingMessage.innerHTML = '<div class="loading"></div> Processing your request...';
+            messagesContainer.appendChild(thinkingMessage);
+
+            setTimeout(() => {
+                messagesContainer.removeChild(thinkingMessage);
+                
+                // Generate response based on message
+                const response = generateAIResponse(message);
+                const botMessage = document.createElement('div');
+                botMessage.className = 'chat-message bot';
+                botMessage.innerHTML = response;
+                messagesContainer.appendChild(botMessage);
+
+                // Scroll to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 2000);
+
+            addSystemLog('info', `AI query processed: ${message}`);
+        }
+
+        function generateAIResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('prepaid') && lowerMessage.includes('500')) {
+                return `🔍 <strong>Found prepaid plans under ₹500:</strong><br><br>
+                        📱 <strong>Jio Prime Prepaid</strong> - ₹399<br>
+                        • Validity: 84 days<br>
+                        • Data: 2GB/day<br><br>
+                        📱 <strong>Jio Student Plan</strong> - ₹199<br>
+                        • Validity: 28 days<br>
+                        • Data: 1.5GB/day<br><br>
+                        Would you like more details about any of these plans?`;
+            } else if (lowerMessage.includes('broadband')) {
+                return `🌐 <strong>Available JioFiber Broadband Plans:</strong><br><br>
+                        🏠 <strong>JioFiber Basic</strong> - ₹699/month<br>
+                        • Speed: 150 Mbps<br>
+                        • Data: Unlimited<br><br>
+                        🏠 <strong>JioFiber Premium</strong> - ₹1499/month<br>
+                        • Speed: 1 Gbps<br>
+                        • Data: Unlimited<br><br>
+                        These plans include complimentary Jio apps subscription!`;
+            } else if (lowerMessage.includes('unlimited')) {
+                return `♾️ <strong>Unlimited Data Plans:</strong><br><br>
+                        📱 <strong>Jio Postpaid Plus</strong> - ₹599/month<br>
+                        • Unlimited Voice & Data<br>
+                        • Netflix, Amazon Prime included<br><br>
+                        🌐 All JioFiber plans have unlimited data<br><br>
+                        Need help choosing the right plan for you?`;
+            } else {
+                return `🤖 I understand you're looking for "${message}". Here are some options:<br><br>
+                        • Use filters like "prepaid under 500" or "broadband plans"<br>
+                        • Ask about specific features like "unlimited data"<br>
+                        • Request comparisons between plans<br><br>
+                        Try asking: "Show me all postpaid plans" or "Compare broadband speeds"`;
+            }
+        }
+
+        // Product catalog functions
+        function populateProducts() {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = mockProducts.map(product => `
+                <div class="product-card" data-category="${product.category}" data-price="${product.price}">
+                    <div class="product-category">${product.category.toUpperCase()}</div>
+                    <h3>${product.name}</h3>
+                    <div class="product-price">₹${product.price}</div>
+                    <p>${product.validity ? `Validity: ${product.validity}` : ''}</p>
+                    <p>${product.data ? `Data: ${product.data}` : ''}</p>
+                    <p>${product.speed ? `Speed: ${product.speed}` : ''}</p>
+                    <p>${product.features ? product.features : ''}</p>
+                    <button class="btn btn-secondary mt-20 full-width" onclick="viewProductDetails('${product.id}')">
+                        View Details
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function filterProducts() {
+            const categoryFilter = document.getElementById('category-filter').value;
+            const priceRange = parseInt(document.getElementById('price-range').value);
+            const cards = document.querySelectorAll('.product-card');
+
+            cards.forEach(card => {
+                const category = card.dataset.category;
+                const price = parseInt(card.dataset.price);
+                
+                const categoryMatch = !categoryFilter || category === categoryFilter;
+                const priceMatch = price <= priceRange;
+                
+                card.style.display = categoryMatch && priceMatch ? 'block' : 'none';
+            });
+        }
+
+        function updatePriceRange(value) {
+            document.getElementById('price-display').textContent = `Up to ₹${value}`;
+            filterProducts();
+        }
+
+        function viewProductDetails(productId) {
+            const product = mockProducts.find(p => p.id === productId);
+            if (product) {
+                alert(`Product Details:\n\nName: ${product.name}\nPrice: ₹${product.price}\nCategory: ${product.category}\n\nThis would open a detailed view in a real application.`);
+                addSystemLog('info', `Product details viewed: ${product.name}`);
+            }
+        }
+
+        // Deep analysis
+        function runDeepAnalysis() {
+            const analysisType = document.getElementById('analysis-type').value;
+            const timeRange = document.getElementById('time-range').value;
+            const resultDiv = document.getElementById('analysis-result');
+            
+            resultDiv.classList.remove('hidden');
+            resultDiv.innerHTML = '<div class="loading"></div> Running deep analysis...';
+
+            setTimeout(() => {
+                let analysisResult;
+                switch(analysisType) {
+                    case 'correlation':
+                        analysisResult = `
+                            <h3>🔗 Correlation Analysis Results</h3>
+                            <p><strong>Time Range:</strong> ${timeRange}</p>
+                            <ul>
+                                <li><strong>Traffic vs Sessions:</strong> 0.87 (Strong positive correlation)</li>
+                                <li><strong>Downstream vs VPN:</strong> 0.23 (Weak correlation)</li>
+                                <li><strong>Peak hours correlation:</strong> 0.94 (Very strong)</li>
+                            </ul>
+                        `;
+                        break;
+                    case 'trend':
+                        analysisResult = `
+                            <h3>📈 Trend Analysis Results</h3>
+                            <p><strong>Time Range:</strong> ${timeRange}</p>
+                            <ul>
+                                <li><strong>Traffic Growth:</strong> +12.3% week-over-week</li>
+                                <li><strong>Session Duration:</strong> Increasing trend (+5.7%)</li>
+                                <li><strong>Peak Usage:</strong> 8-10 PM consistently highest</li>
+                            </ul>
+                        `;
+                        break;
+                    case 'forecast':
+                        analysisResult = `
+                            <h3>🔮 Forecasting Results</h3>
+                            <p><strong>Prediction Range:</strong> Next ${timeRange}</p>
+                            <ul>
+                                <li><strong>Expected Traffic:</strong> 15-20% increase</li>
+                                <li><strong>Anomaly Probability:</strong> 12% (Low risk)</li>
+                                <li><strong>Resource Requirements:</strong> Scale up by 8%</li>
+                            </ul>
+                        `;
+                        break;
+                    case 'clustering':
+                        analysisResult = `
+                            <h3>🎯 Clustering Analysis</h3>
+                            <p><strong>Time Range:</strong> ${timeRange}</p>
+                            <ul>
+                                <li><strong>Cluster 1:</strong> High traffic, low anomalies (65%)</li>
+                                <li><strong>Cluster 2:</strong> Medium traffic, medium anomalies (25%)</li>
+                                <li><strong>Cluster 3:</strong> Variable patterns (10%)</li>
+                            </ul>
+                        `;
+                        break;
+                }
+
+                resultDiv.className = 'result-panel normal-result';
+                resultDiv.innerHTML = analysisResult;
+                addSystemLog('info', `Deep analysis completed: ${analysisType}`);
+            }, 3000);
+        }
+
+        // Settings functions
+        function updateSliderValue(sliderId, displayId) {
+            const slider = document.getElementById(sliderId);
+            const display = document.getElementById(displayId);
+            display.textContent = slider.value;
+        }
+
+        function saveModelConfig() {
+            const config = {
+                xgbTrees: document.getElementById('xgb-trees').value,
+                maxDepth: document.getElementById('max-depth').value,
+                learningRate: document.getElementById('learning-rate').value,
+                precisionThreshold: document.getElementById('precision-threshold').value
+            };
+            
+            addSystemLog('info', `Model configuration saved: ${JSON.stringify(config)}`);
+            alert('Model configuration saved successfully! Changes will take effect after next retraining.');
+        }
+
+        function exportConfig() {
+            const config = {
+                model: {
+                    xgbTrees: document.getElementById('xgb-trees').value,
+                    maxDepth: document.getElementById('max-depth').value,
+                    learningRate: document.getElementById('learning-rate').value,
+                    precisionThreshold: document.getElementById('precision-threshold').value
+                },
+                system: {
+                    retrainSchedule: document.getElementById('retrain-schedule').value,
+                    dataRetention: document.getElementById('data-retention').value,
+                    alertCooldown: document.getElementById('alert-cooldown').value,
+                    apiRateLimit: document.getElementById('api-rate-limit').value
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'jio-telecom-config.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            addSystemLog('info', 'Configuration exported successfully');
+        }
+
+        function resetSystem() {
+            if (confirm('Are you sure you want to reset the system? This will clear all logs and reset settings to defaults.')) {
+                // Reset all form values to defaults
+                document.getElementById('xgb-trees').value = 400;
+                document.getElementById('max-depth').value = 5;
+                document.getElementById('learning-rate').value = 0.05;
+                document.getElementById('precision-threshold').value = 0.99;
+                
+                // Clear logs
+                systemLogs = [];
+                updateLogsDisplay();
+                
+                addSystemLog('warning', 'System reset completed - all settings restored to defaults');
+                alert('System has been reset to default settings.');
+            }
+        }
+
+        // System monitoring and logging
+        function startSystemMonitoring() {
+            setInterval(() => {
+                // Simulate random system events
+                if (Math.random() > 0.95) {
+                    const events = [
+                        { level: 'info', message: 'Model retrained successfully' },
+                        { level: 'warning', message: 'High API usage detected' },
+                        { level: 'info', message: 'Database backup completed' },
+                        { level: 'error', message: 'Connection timeout to external API' }
+                    ];
+                    const event = events[Math.floor(Math.random() * events.length)];
+                    addSystemLog(event.level, event.message);
+                }
+                
+                // Update status values randomly
+                if (Math.random() > 0.9) {
+                    updateStatusValues();
+                }
+            }, 10000);
+        }
+
+        function addSystemLog(level, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = { timestamp, level, message };
+            systemLogs.unshift(logEntry);
+            
+            // Keep only last 100 logs
+            if (systemLogs.length > 100) {
+                systemLogs = systemLogs.slice(0, 100);
+            }
+            
+            updateLogsDisplay();
+        }
+
+        function updateLogsDisplay() {
+            const logsContainer = document.getElementById('system-logs');
+            const logLevel = document.getElementById('log-level').value;
+            
+            let filteredLogs = systemLogs;
+            if (logLevel !== 'all') {
+                filteredLogs = systemLogs.filter(log => log.level === logLevel);
+            }
+            
+            logsContainer.innerHTML = filteredLogs.map(log => `
+                <div class="log-entry log-${log.level}">
+                    <span class="log-timestamp">[${log.timestamp}]</span>
+                    <span class="log-level">[${log.level.toUpperCase()}]</span>
+                    <span class="log-message">${log.message}</span>
+                </div>
+            `).join('');
+            
+            // Scroll to top to see latest logs
+            logsContainer.scrollTop = 0;
+        }
+
+        function filterLogs() {
+            updateLogsDisplay();
+        }
+
+        function clearLogs() {
+            systemLogs = [];
+            updateLogsDisplay();
+            addSystemLog('info', 'System logs cleared');
+        }
+
+        function updateStatusValues() {
+            // Simulate status updates
+            const uptimeElement = document.querySelector('#system-status .status-value');
+            const currentUptime = parseFloat(uptimeElement.textContent);
+            uptimeElement.textContent = (currentUptime + Math.random() * 0.1 - 0.05).toFixed(1) + '%';
+            
+            const apiCallsElement = document.querySelector('#api-calls .status-value');
+            const currentCalls = parseInt(apiCallsElement.textContent.replace(',', ''));
+            apiCallsElement.textContent = (currentCalls + Math.floor(Math.random() * 100 - 50)).toLocaleString();
+        }
+
+        // Utility functions
+        function generateTimeLabels(count) {
+            const labels = [];
+            const now = new Date();
+            for (let i = count - 1; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 5 * 60000); // 5-minute intervals
+                labels.push(time.toLocaleTimeString());
+            }
+            return labels;
+        }
+
+        function generateRandomData(count, min, max) {
+            return Array.from({ length: count }, () => 
+                Math.floor(Math.random() * (max - min + 1)) + min
+            );
+        }
+
+        // Feature importance update
+        function updateFeatureImportance() {
+            const features = [
+                'agg_traffic_z24h',
+                'downstream_roll_std_24h', 
+                'active_sessions_diff1',
+                'vpn_traffic_z24h',
+                'hour_of_day',
+                'day_of_week'
+            ];
+            
+            const featureGrid = document.querySelector('#feature-importance .feature-grid');
+            featureGrid.innerHTML = features.map(feature => {
+                const importance = (Math.random() * 0.4).toFixed(2);
+                return `<div class="feature-item"><strong>${feature}:</strong> ${importance}</div>`;
+            }).join('');
+            
+            addSystemLog('info', 'SHAP feature importance updated');
+        }
+
+        // Initialize logs with some sample entries
+        setTimeout(() => {
+            addSystemLog('info', 'Jio Telecom Dashboard started');
+            addSystemLog('info', 'KPI monitoring service connected');
+            addSystemLog('info', 'AI Product Catalog service initialized');
+            addSystemLog('info', 'All systems operational');
+        }, 1000);
+    </script>
+</body>
+</html>
