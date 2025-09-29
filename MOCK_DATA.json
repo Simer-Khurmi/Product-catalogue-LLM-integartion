@@ -1,0 +1,12 @@
+{
+  "productOffering": [
+    {"id": "1001", "name": "Prepaid 199", "category": "prepaid", "price": 199, "status": "active", "validity": "28d"},
+    {"id": "1002", "name": "Prepaid 399", "category": "prepaid", "price": 399, "status": "active", "validity": "56d"},
+    {"id": "2001", "name": "Postpaid 499", "category": "postpaid", "price": 499, "status": "active", "validity": "30d"},
+    {"id": "3001", "name": "Broadband 699", "category": "broadband", "price": 699, "status": "active", "speed": "100Mbps"}
+  ],
+  "customers": [
+    {"id": "cust123", "name": "Ravi Kumar", "email": "ravi@example.com", "subscriptions": ["1001","3001"] }
+  ],
+  "orders": []
+}
